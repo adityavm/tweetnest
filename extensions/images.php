@@ -15,8 +15,30 @@
 	
 	class Extension_Images {
 		public function enhanceTweet($tweet){
+                        $safe = true;
 			$imgs  = array();
 			$links = findURLs($tweet['text']);
+
+                        //expand URLs (damn URL shorteners)
+                        foreach($links as $link => $l){
+				if(!$safe) break;
+
+				if(is_array($l) && array_key_exists("host", $l) && array_key_exists("path", $l)){	
+					$curl = curl_init("http://api.longurl.org/v2/expand?url=$link&format=json");
+					curl_setopt_array($curl, array(
+									CURLOPT_USERAGENT => "Mozilla/5.0 (Compatible; libCURL)",
+									CURLOPT_RETURNTRANSFER => 1
+							));
+
+					$longurl = curl_exec($curl);
+					$longurl = json_decode($longurl, true);
+					$url = parse_url($longurl['long-url']);
+
+					$links[$link] = $url;
+				}
+			}
+
+
 			foreach($links as $link => $l){
 				if(is_array($l) && array_key_exists("host", $l) && array_key_exists("path", $l)){
 					$domain = domain($l['host']);
